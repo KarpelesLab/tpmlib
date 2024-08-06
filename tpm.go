@@ -89,6 +89,7 @@ func GetKey() (Intf, error) {
 		tpmConn: tpmConn,
 	}
 
+	// attempt to make a ECDH key too
 	ecdhhandle := tpmutil.Handle(0x81010002)
 	tpmKeyObject.ecdhkey, err = client.NewCachedKey(tpmConn, tpm2.HandleOwner, tpmECDHKeyTemplate, ecdhhandle)
 	if err != nil {
@@ -161,7 +162,7 @@ func (k *tpmKey) ECDHPublic() (*ecdh.PublicKey, error) {
 }
 
 func (k *tpmKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
-	alg, err := tpm2.HashToAlgorithm(opts.HashFunc())
+	halg, err := tpm2.HashToAlgorithm(opts.HashFunc())
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +171,7 @@ func (k *tpmKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]
 	defer k.lk.Unlock()
 
 	// rand will be ignored because the tpm will do the signature
-	sig, err := tpm2.Sign(k.tpmConn, k.key.Handle(), "", digest, nil, &tpm2.SigScheme{Alg: tpm2.AlgECDSA, Hash: alg})
+	sig, err := tpm2.Sign(k.tpmConn, k.key.Handle(), "", digest, nil, &tpm2.SigScheme{Alg: tpm2.AlgECDSA, Hash: halg})
 	if err != nil {
 		return nil, err
 	}
