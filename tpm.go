@@ -3,6 +3,7 @@ package tpmlib
 import (
 	"crypto"
 	"crypto/ecdh"
+	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/base64"
@@ -145,11 +146,18 @@ func (k *tpmKey) ECDH(remote *ecdh.PublicKey) ([]byte, error) {
 }
 
 // ECDHPublic returns the key's public key
-func (k *tpmKey) ECDHPublic() crypto.PublicKey {
+func (k *tpmKey) ECDHPublic() (*ecdh.PublicKey, error) {
 	if k.ecdhkey == nil {
-		return nil
+		return nil, errors.New("ECDH operations not available")
 	}
-	return k.ecdhkey.PublicKey()
+	switch v := tpmKeyObject.ecdhkey.PublicKey().(type) {
+	case *ecdsa.PublicKey:
+		return v.ECDH()
+	case *ecdh.PublicKey:
+		return v, nil
+	default:
+		return nil, fmt.Errorf("unsupported public key type %T", v)
+	}
 }
 
 func (k *tpmKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
