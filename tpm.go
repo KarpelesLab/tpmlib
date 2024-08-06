@@ -161,11 +161,16 @@ func (k *tpmKey) ECDHPublic() (*ecdh.PublicKey, error) {
 }
 
 func (k *tpmKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+	alg, err := tpm2.HashToAlgorithm(opts.HashFunc())
+	if err != nil {
+		return nil, err
+	}
+
 	k.lk.Lock()
 	defer k.lk.Unlock()
 
 	// rand will be ignored because the tpm will do the signature
-	sig, err := tpm2.Sign(k.tpmConn, k.key.Handle(), "", digest, nil, &tpm2.SigScheme{Alg: tpm2.AlgECDSA, Hash: tpm2.AlgSHA256})
+	sig, err := tpm2.Sign(k.tpmConn, k.key.Handle(), "", digest, nil, &tpm2.SigScheme{Alg: tpm2.AlgECDSA, Hash: alg})
 	if err != nil {
 		return nil, err
 	}
