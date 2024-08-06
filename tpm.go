@@ -26,12 +26,12 @@ type tpmKey struct {
 	lk      sync.Mutex
 	key     *client.Key
 	ecdhkey *client.Key
+	tpmConn io.ReadWriteCloser
 }
 
 var (
 	tpmKeyObject *tpmKey
 	tpmKeyInit   sync.Mutex
-	tpmConn      io.ReadWriteCloser
 
 	tpmKeyTemplate = tpm2.Public{
 		Type:       tpm2.AlgECC,
@@ -70,12 +70,9 @@ func GetKey() (Intf, error) {
 	}
 
 	// the default paths on Linux (/dev/tpmrm0 then /dev/tpm0), will be used
-	var err error
-	if tpmConn == nil {
-		tpmConn, err = tpm2open()
-		if err != nil {
-			return nil, err
-		}
+	tpmConn, err := OpenTPM()
+	if err != nil {
+		return nil, err
 	}
 
 	// only perform this after we got a successful connection to the tpm
@@ -87,7 +84,8 @@ func GetKey() (Intf, error) {
 	}
 
 	tpmKeyObject = &tpmKey{
-		key: key,
+		key:     key,
+		tpmConn: tpmConn,
 	}
 
 	ecdhhandle := tpmutil.Handle(0x81010002)
@@ -139,7 +137,7 @@ func (k *tpmKey) ECDH(remote *ecdh.PublicKey) ([]byte, error) {
 		YRaw: b[l:],
 	}
 
-	z, err := tpm2.ECDHZGen(tpmConn, tpmKeyObject.ecdhkey.Handle(), "", ephemeralPub)
+	z, err := tpm2.ECDHZGen(k.tpmConn, tpmKeyObject.ecdhkey.Handle(), "", ephemeralPub)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +157,7 @@ func (k *tpmKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]
 	defer k.lk.Unlock()
 
 	// rand will be ignored because the tpm will do the signature
-	sig, err := tpm2.Sign(tpmConn, k.key.Handle(), "", digest, nil, &tpm2.SigScheme{Alg: tpm2.AlgECDSA, Hash: tpm2.AlgSHA256})
+	sig, err := tpm2.Sign(k.tpmConn, k.key.Handle(), "", digest, nil, &tpm2.SigScheme{Alg: tpm2.AlgECDSA, Hash: tpm2.AlgSHA256})
 	if err != nil {
 		return nil, err
 	}
@@ -195,10 +193,10 @@ func (k *tpmKey) Attest() ([]byte, error) {
 	slog.Debug(fmt.Sprintf("preparing to attest nonce=%x", nonce), "event", "fleet:tpm:prep")
 
 	// prepare attestation
-	key, err := client.GceAttestationKeyECC(tpmConn)
+	key, err := client.GceAttestationKeyECC(k.tpmConn)
 	if err != nil {
 		slog.Warn(fmt.Sprintf("[tpm] failed loading gce key, attempting standard attestation key..."), "event", "fleet:tpm:gce_fail")
-		key, err = client.AttestationKeyECC(tpmConn)
+		key, err = client.AttestationKeyECC(k.tpmConn)
 	}
 	if err != nil {
 		slog.Error(fmt.Sprintf("[tpm] attestation key not available: %s", err), "event", "fleet:tpm:attest_fail")
