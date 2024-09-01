@@ -161,6 +161,13 @@ func (k *tpmKey) ECDHPublic() (*ecdh.PublicKey, error) {
 	}
 }
 
+func (k *tpmKey) Keychain() *cryptutil.Keychain {
+	kc := cryptutil.NewKeychain()
+	kc.AddKey(&tpmSignKey{k})
+	kc.AddKey(&tpmCryptKey{k})
+	return kc
+}
+
 func (k *tpmKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	halg, err := tpm2.HashToAlgorithm(opts.HashFunc())
 	if err != nil {

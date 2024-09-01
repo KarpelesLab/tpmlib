@@ -3,7 +3,7 @@ module github.com/KarpelesLab/tpmlib
 go 1.22.2
 
 require (
-	github.com/KarpelesLab/cryptutil v0.2.7
+	github.com/KarpelesLab/cryptutil v0.2.17
 	github.com/google/go-tpm v0.9.1
 	github.com/google/go-tpm-tools v0.4.4
 )
