@@ -163,8 +163,12 @@ func (k *tpmKey) ECDHPublic() (*ecdh.PublicKey, error) {
 
 func (k *tpmKey) Keychain() *cryptutil.Keychain {
 	kc := cryptutil.NewKeychain()
-	kc.AddKey(&tpmSignKey{k})
-	kc.AddKey(&tpmCryptKey{k})
+	if k.key != nil {
+		kc.AddKey(&tpmSignKey{k})
+	}
+	if k.ecdhkey != nil {
+		kc.AddKey(&tpmCryptKey{k})
+	}
 	return kc
 }
 
