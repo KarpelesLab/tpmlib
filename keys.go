@@ -32,6 +32,10 @@ func (t *tpmSignKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts)
 }
 
 func (t *tpmCryptKey) Public() crypto.PublicKey {
+	return t.PublicKey()
+}
+
+func (t *tpmCryptKey) PublicKey() *ecdh.PublicKey {
 	if pub, err := t.parent.ECDHPublic(); err == nil {
 		return pub
 	}
