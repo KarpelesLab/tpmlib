@@ -4,6 +4,8 @@ github.com/KarpelesLab/cryptutil v0.2.16 h1:P1UmmTKCC/sEoZp5/OliKTe11xq5LCTLdkSo
 github.com/KarpelesLab/cryptutil v0.2.16/go.mod h1:2gBM1JlpscOqYSE08hoOug3pFpR2Hh6EV/6aK7ZANqQ=
 github.com/KarpelesLab/cryptutil v0.2.17 h1:aKv7gFWPvXnsfnL1/JU2G8G0FqwylwwZO9xi3jOL4uY=
 github.com/KarpelesLab/cryptutil v0.2.17/go.mod h1:2gBM1JlpscOqYSE08hoOug3pFpR2Hh6EV/6aK7ZANqQ=
+github.com/KarpelesLab/cryptutil v0.2.20 h1:UKm0h2xWNP8oNH+ZDxW0kt//lSQz1ChT0ANBACV+xCk=
+github.com/KarpelesLab/cryptutil v0.2.20/go.mod h1:2gBM1JlpscOqYSE08hoOug3pFpR2Hh6EV/6aK7ZANqQ=
 github.com/ModChain/edwards25519 v1.0.0 h1:Geww/chivFY6E/mZgA4chVf4HWvUgJ1LdRZ0v2d25Eo=
 github.com/ModChain/edwards25519 v1.0.0/go.mod h1:kjiZ1iVWnsHVMHeIgWFu26ik6/jPlE+c9MrfO5wbLm4=
 github.com/fxamacker/cbor/v2 v2.7.0 h1:iM5WgngdRBanHcxugY4JySA0nk1wZorNOpTgCMedv5E=
