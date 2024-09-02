@@ -32,7 +32,7 @@ func (t *tpmSignKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts)
 }
 
 func (t *tpmSignKey) KeyPurposes() []string {
-	return []string{"sign"}
+	return []string{"tpm-sign", "sign"}
 }
 
 func (t *tpmCryptKey) Public() crypto.PublicKey {
@@ -58,5 +58,5 @@ func (t *tpmCryptKey) ECDH(remote *ecdh.PublicKey) ([]byte, error) {
 }
 
 func (t *tpmCryptKey) KeyPurposes() []string {
-	return []string{"decrypt"}
+	return []string{"tpm-decrypt", "decrypt"}
 }
