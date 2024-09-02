@@ -31,6 +31,10 @@ func (t *tpmSignKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts)
 	return t.parent.Sign(rand, digest, opts)
 }
 
+func (t *tpmSignKey) KeyPurposes() []string {
+	return []string{"sign"}
+}
+
 func (t *tpmCryptKey) Public() crypto.PublicKey {
 	return t.PublicKey()
 }
@@ -51,4 +55,8 @@ func (t *tpmCryptKey) Equal(x crypto.PrivateKey) bool {
 
 func (t *tpmCryptKey) ECDH(remote *ecdh.PublicKey) ([]byte, error) {
 	return t.parent.ECDH(remote)
+}
+
+func (t *tpmCryptKey) KeyPurposes() []string {
+	return []string{"decrypt"}
 }
