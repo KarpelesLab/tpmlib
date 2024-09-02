@@ -120,9 +120,7 @@ func (k *tpmKey) IDCard() (*cryptutil.IDCard, error) {
 	if err != nil {
 		return nil, err
 	}
-	if tpmKeyObject.ecdhkey != nil {
-		id.SetKeyPurposes(tpmKeyObject.ecdhkey.PublicKey(), "decrypt")
-	}
+	id.AddKeychain(k.Keychain())
 	return id, nil
 }
 
@@ -163,9 +161,7 @@ func (k *tpmKey) ECDHPublic() (*ecdh.PublicKey, error) {
 
 func (k *tpmKey) Keychain() *cryptutil.Keychain {
 	kc := cryptutil.NewKeychain()
-	if k.key != nil {
-		kc.AddKey(&tpmSignKey{k})
-	}
+	kc.AddKey(&tpmSignKey{k})
 	if k.ecdhkey != nil {
 		kc.AddKey(&tpmCryptKey{k})
 	}
