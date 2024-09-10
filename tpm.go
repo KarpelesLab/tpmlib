@@ -1,9 +1,11 @@
 package tpmlib
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ecdh"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/base64"
@@ -130,8 +132,8 @@ func (k *tpmKey) ECDH(remote *ecdh.PublicKey) ([]byte, error) {
 	if tpmKeyObject.ecdhkey == nil {
 		return nil, errors.New("ECDH operations are not available")
 	}
-	b := remote.Bytes()
-	l := len(b)
+	b := remote.Bytes()[1:]
+	l := len(b) / 2
 	ephemeralPub := tpm2.ECPoint{
 		XRaw: b[:l],
 		YRaw: b[l:],
@@ -159,6 +161,7 @@ func (k *tpmKey) ECDHPublic() (*ecdh.PublicKey, error) {
 	}
 }
 
+// Keychain returns a [cryptutil.Keychain] containing both signing and encryption keys for the current TPM
 func (k *tpmKey) Keychain() *cryptutil.Keychain {
 	kc := cryptutil.NewKeychain()
 	kc.AddKey(&tpmSignKey{k})
@@ -166,6 +169,56 @@ func (k *tpmKey) Keychain() *cryptutil.Keychain {
 		kc.AddKey(&tpmCryptKey{k})
 	}
 	return kc
+}
+
+// Test performs some tests on the tpm, making sure everything works as expected
+func (k *tpmKey) Test() error {
+	id, err := k.IDCard()
+	if err != nil {
+		return err
+	}
+	kc := k.Keychain()
+
+	testBytes := make([]byte, 32)
+	_, err = io.ReadFull(rand.Reader, testBytes)
+	if err != nil {
+		return err
+	}
+
+	// generate encrypted/signed bottle
+	bot := cryptutil.NewBottle(testBytes)
+	// encrypt
+	err = bot.Encrypt(rand.Reader, id)
+	if err != nil {
+		return err
+	}
+	// sign
+	bot.BottleUp()
+	err = bot.Sign(rand.Reader, kc.FirstSigner(), crypto.SHA256)
+	if err != nil {
+		return err
+	}
+
+	// decrypt/open bottle
+	op, err := cryptutil.NewOpener(kc)
+	if err != nil {
+		return err
+	}
+	res, info, err := op.Open(bot)
+	if err != nil {
+		return fmt.Errorf("failed to open bottle: %w", err)
+	}
+	if info.Decryption != 1 {
+		return errors.New("excepted decryption missing")
+	}
+	if !bytes.Equal(res, testBytes) {
+		return errors.New("result bytes are not matching original bytes")
+	}
+	if !info.SignedBy(id) {
+		return errors.New("could not confirm signature")
+	}
+
+	return nil
 }
 
 func (k *tpmKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {

@@ -50,6 +50,11 @@ func TestTpm(t *testing.T) {
 		return
 	}
 
+	err = ktest.(interface{ Test() error }).Test()
+	if err != nil {
+		t.Errorf("tpm self test failed: %s", err)
+	}
+
 	// get public key
 	pubKey := ktest.Public()
 	if pubKey == nil {
