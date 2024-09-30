@@ -283,3 +283,24 @@ func (k *tpmKey) Attest() ([]byte, error) {
 
 	return json.Marshal(res)
 }
+
+// Read reads bytes from the TPM's true random generator
+func (k *tpmKey) Read(b []byte) (n int, err error) {
+	for len(b) > 0 {
+		c := len(b)
+		// limit to 16kB reads
+		if c > 0x4000 {
+			c = 0x4000
+		}
+		buf, err2 := tpm2.GetRandom(k.tpmConn, uint16(c))
+		if err2 != nil {
+			err = err2
+			return
+		}
+		l := copy(b, buf)
+		// move b & add to n
+		b = b[l:]
+		n += l
+	}
+	return
+}
