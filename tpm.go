@@ -129,6 +129,9 @@ func (k *tpmKey) IDCard() (*cryptutil.IDCard, error) {
 // ECDH returns the ECDH value generated from the locally stored private key and the passed
 // ephemeral key
 func (k *tpmKey) ECDH(remote *ecdh.PublicKey) ([]byte, error) {
+	k.lk.Lock()
+	defer k.lk.Unlock()
+
 	if tpmKeyObject.ecdhkey == nil {
 		return nil, errors.New("ECDH operations are not available")
 	}
@@ -245,6 +248,9 @@ func (k *tpmKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]
 }
 
 func (k *tpmKey) Attest() ([]byte, error) {
+	k.lk.Lock()
+	defer k.lk.Unlock()
+
 	// attempt to generate attestation
 	t := time.Now()
 	buf := make([]byte, 12)
@@ -286,6 +292,9 @@ func (k *tpmKey) Attest() ([]byte, error) {
 
 // Read reads bytes from the TPM's true random generator
 func (k *tpmKey) Read(b []byte) (n int, err error) {
+	k.lk.Lock()
+	defer k.lk.Unlock()
+
 	for len(b) > 0 {
 		c := len(b)
 		// limit to 16kB reads
