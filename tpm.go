@@ -1,3 +1,12 @@
+// Package tpmlib provides an interface to Trusted Platform Module (TPM) devices.
+//
+// It enables applications to utilize TPM-backed keys for cryptographic operations including
+// signing (ECDSA), key exchange (ECDH), hardware random number generation, and attestation.
+// The library is designed to work with TPM 2.0 devices and supports Linux and Windows platforms.
+//
+// This package manages a singleton connection to the TPM device and provides thread-safe
+// access through proper locking mechanisms. It automatically generates and caches keys
+// for signing and encryption operations.
 package tpmlib
 
 import (
@@ -63,7 +72,14 @@ type ecdsaSignature struct {
 	R, S *big.Int
 }
 
-// GetKey returns an object that corresponds to the local machine's TPM. Multiple calls of GetKey will return the same object.
+// GetKey returns an object that corresponds to the local machine's TPM.
+// 
+// This function connects to the TPM device, creates or retrieves cached keys for
+// signing and ECDH operations. Multiple calls to GetKey will return the same object 
+// as the TPM connection is managed as a singleton. This function is thread-safe.
+//
+// It returns an Intf interface that provides access to all TPM functionality.
+// If the connection to the TPM fails or key creation fails, an error is returned.
 func GetKey() (Intf, error) {
 	tpmKeyInit.Lock()
 	defer tpmKeyInit.Unlock()
@@ -174,7 +190,20 @@ func (k *tpmKey) Keychain() *cryptutil.Keychain {
 	return kc
 }
 
-// Test performs some tests on the tpm, making sure everything works as expected
+// Test performs a comprehensive self-test on the TPM functionality.
+//
+// This method verifies that all essential TPM operations are working correctly. It:
+// 1. Creates an IDCard with the TPM's keys
+// 2. Generates random test data
+// 3. Creates a cryptutil.Bottle containing the test data
+// 4. Encrypts the bottle using the IDCard (testing encryption capability)
+// 5. Signs the bottle using the TPM key (testing signing capability)
+// 6. Creates an Opener with the TPM's keychain
+// 7. Opens and verifies the bottle (testing decryption and signature verification)
+//
+// If any step fails, an appropriate error is returned with context about which
+// operation failed. This method is useful for verifying that the TPM is functioning
+// correctly in a new environment.
 func (k *tpmKey) Test() error {
 	id, err := k.IDCard()
 	if err != nil {
@@ -247,6 +276,14 @@ func (k *tpmKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]
 	return asn1.Marshal(ecdsaSig)
 }
 
+// Attest generates attestation data from the TPM.
+//
+// Attestation data provides cryptographic proof that a key is protected by a specific
+// TPM device. This method creates a nonce based on the current time, loads an attestation
+// key (attempting GCE attestation first, then standard attestation), and generates the
+// attestation data. The result is returned as a JSON-encoded byte array.
+//
+// This method is thread-safe and acquires a lock during execution.
 func (k *tpmKey) Attest() ([]byte, error) {
 	k.lk.Lock()
 	defer k.lk.Unlock()
@@ -290,7 +327,17 @@ func (k *tpmKey) Attest() ([]byte, error) {
 	return json.Marshal(res)
 }
 
-// Read reads bytes from the TPM's true random generator
+// Read reads bytes from the TPM's True Random Number Generator (TRNG).
+//
+// This method implements the io.Reader interface to provide access to the hardware
+// random number generator within the TPM. The TPM's TRNG provides higher-quality
+// randomness than software-based random number generators.
+//
+// The method reads data in chunks of up to 16KB (0x4000 bytes) to comply with
+// TPM limitations. It will continue reading until the provided buffer is filled
+// or an error occurs.
+//
+// This method is thread-safe and acquires a lock during execution.
 func (k *tpmKey) Read(b []byte) (n int, err error) {
 	k.lk.Lock()
 	defer k.lk.Unlock()
