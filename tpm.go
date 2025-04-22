@@ -118,7 +118,7 @@ func (k *tpmKey) String() string {
 
 // IDCard returns an unsigned IDCard
 func (k *tpmKey) IDCard() (*cryptutil.IDCard, error) {
-	id, err := cryptutil.NewIDCard(tpmKeyObject.Public())
+	id, err := cryptutil.NewIDCard(k.Public())
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (k *tpmKey) ECDH(remote *ecdh.PublicKey) ([]byte, error) {
 	k.lk.Lock()
 	defer k.lk.Unlock()
 
-	if tpmKeyObject.ecdhkey == nil {
+	if k.ecdhkey == nil {
 		return nil, errors.New("ECDH operations are not available")
 	}
 	b := remote.Bytes()[1:]
@@ -142,7 +142,7 @@ func (k *tpmKey) ECDH(remote *ecdh.PublicKey) ([]byte, error) {
 		YRaw: b[l:],
 	}
 
-	z, err := tpm2.ECDHZGen(k.tpmConn, tpmKeyObject.ecdhkey.Handle(), "", ephemeralPub)
+	z, err := tpm2.ECDHZGen(k.tpmConn, k.ecdhkey.Handle(), "", ephemeralPub)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (k *tpmKey) ECDHPublic() (*ecdh.PublicKey, error) {
 	if k.ecdhkey == nil {
 		return nil, errors.New("ECDH operations not available")
 	}
-	switch v := tpmKeyObject.ecdhkey.PublicKey().(type) {
+	switch v := k.ecdhkey.PublicKey().(type) {
 	case *ecdsa.PublicKey:
 		return v.ECDH()
 	case *ecdh.PublicKey:
